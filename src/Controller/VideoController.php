@@ -27,6 +27,8 @@ class VideoController extends AbstractController
      * @param UserRepository $userRepository
      * @param VideoStationRepository $videoStationRepository
      * @return Response
+     * @throws \Doctrine\DBAL\Driver\Exception
+     * @throws \Doctrine\DBAL\Exception
      */
     #[Route('/{userId<^\d+>}/stations', name: 'stations')]
     public function stations(
@@ -43,8 +45,8 @@ class VideoController extends AbstractController
             throw new NotFoundHttpException('User not found');
         }
 
-        $page = $request->get('page', 1);
-        $limit = $request->get('limit', 10);
+        $page = (integer)$request->get('page', 1);
+        $limit = (integer)$request->get('limit', 10);
 
         return
             $this
