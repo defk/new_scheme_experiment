@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
+use App\Entity\User;
 use App\Entity\VideoStation;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -19,32 +22,18 @@ class VideoStationRepository extends ServiceEntityRepository
         parent::__construct($registry, VideoStation::class);
     }
 
-    // /**
-    //  * @return VideoStation[] Returns an array of VideoStation objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    /**
+     * @param User $user
+     * @param int $page
+     * @param int $limit
+     * @return array
+     */
+    public function fetchListingByUser(User $user, int $page, int $limit): array
     {
-        return $this->createQueryBuilder('v')
-            ->andWhere('v.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('v.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
 
-    /*
-    public function findOneBySomeField($value): ?VideoStation
-    {
-        return $this->createQueryBuilder('v')
-            ->andWhere('v.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        return [
+            'data' => [],
+            'total' => 0,
+        ];
     }
-    */
 }
