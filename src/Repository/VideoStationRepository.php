@@ -23,14 +23,17 @@ class VideoStationRepository extends ServiceEntityRepository
     }
 
     /**
-     * @param User $user
-     * @param int $page
-     * @param int $limit
+     * @param User  $user
+     * @param int   $page
+     * @param int   $limit
+     * @param array $roadIds
+     * @param array $organizationIds
+     *
      * @return array
      * @throws \Doctrine\DBAL\Driver\Exception
      * @throws \Doctrine\DBAL\Exception
      */
-    public function fetchListingByUser(User $user, int $page, int $limit): array
+    public function fetchListingByUser(User $user, int $page, int $limit, array $roadIds, array $organizationIds): array
     {
 
         $query = $this->getEntityManager()->getConnection()->createQueryBuilder();
@@ -42,8 +45,8 @@ class VideoStationRepository extends ServiceEntityRepository
         if (!$user->getIsRoot()) {
             $query
                 ->innerJoin('r', 'road_part', 'rp', 'rp.road_id=r.id')
-                ->leftJoin('rp', 'contract_road_part', 'crp', 'crp.road_part_id=rp.id')
-                ->leftJoin('crp', 'contract', 'c', 'c.id=crp.contract_id')
+                ->innerJoin('rp', 'contract_road_part', 'crp', 'crp.road_part_id=rp.id')
+                ->innerJoin('crp', 'contract', 'c', 'c.id=crp.contract_id')
                 ->andWhere('vs.address between rp.start and rp.finish')
                 ->andWhere(
                     $query->expr()->or(
@@ -53,9 +56,31 @@ class VideoStationRepository extends ServiceEntityRepository
                 );
         }
 
+        if ([] !== $roadIds) {
+            $query->andWhere($query->expr()->in('vs.road_id', $roadIds));
+        }
+
+        if ([] !== $organizationIds) {
+            if ($user->getIsRoot()) {
+                $query
+                    ->innerJoin('r', 'road_part', 'rp', 'rp.road_id=r.id')
+                    ->innerJoin('rp', 'contract_road_part', 'crp', 'crp.road_part_id=rp.id')
+                    ->innerJoin('crp', 'contract', 'c', 'c.id=crp.contract_id');
+            }
+
+            $query
+                ->andWhere(
+                    $query->expr()->or(
+                        $query->expr()->in('rp.owner_id', $organizationIds),
+                        $query->expr()->in('c.executor_id', $organizationIds)
+                    )
+                );
+        }
+
         [
             '_cnt' => $total,
-        ] = $query->select(['count(distinct vs.id) as _cnt'])->execute()->fetchAssociative();
+        ]
+            = $query->select(['count(distinct vs.id) as _cnt'])->execute()->fetchAssociative();
 
         $rows = $query
             ->select([
@@ -66,13 +91,16 @@ class VideoStationRepository extends ServiceEntityRepository
             ->distinct()
             ->addOrderBy('r.order_rank', 'ASC')
             ->addOrderBy('vs.address', 'ASC')
-            ->setFirstResult(--$page*$limit)
-            ->setMaxResults($limit)
+            ->setFirstResult(--$page * $limit)
+            ->setMaxResults($limit)/**/
             ->execute()
-            ->fetchAllAssociative();
+            ->fetchAllAssociative()/**/
+        ;
+
+//        echo $query->getSQL();die;
 
         return [
-            'data' => $rows,
+            'data'  => $rows,
             'total' => $total,
         ];
     }

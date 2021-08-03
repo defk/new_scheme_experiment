@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Entity\VideoStation;
 use App\Repository\UserRepository;
 use App\Repository\VideoStationRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,19 +12,23 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Annotation\Route;
+use function array_map;
+use function explode;
 
 /**
  * Class VideoController
+ *
  * @package App\Controller
- * @uses Route
+ * @uses    Route
  */
 class VideoController extends AbstractController
 {
     /**
-     * @param int $userId
-     * @param Request $request
-     * @param UserRepository $userRepository
+     * @param int                    $userId
+     * @param Request                $request
+     * @param UserRepository         $userRepository
      * @param VideoStationRepository $videoStationRepository
+     *
      * @return Response
      * @throws \Doctrine\DBAL\Driver\Exception
      * @throws \Doctrine\DBAL\Exception
@@ -48,16 +51,43 @@ class VideoController extends AbstractController
         $page = (integer)$request->get('page', 1);
         $limit = (integer)$request->get('limit', 10);
 
+        $roadIds = $this->extractArrayParamFromRequest($request, 'roads');
+        $organizationIds = $this->extractArrayParamFromRequest($request, 'organizations');
+
         return
             $this
                 ->json(
-                    $videoStationRepository->fetchListingByUser($user, $page, $limit)
+                    $videoStationRepository->fetchListingByUser($user, $page, $limit, $roadIds, $organizationIds)
                 );
     }
 
-    #[Route('/{userId}/details/{stationId}', name: 'details')]
-    public function details(int $userId, int $stationId): Response
+    /**
+     * @param Request $request
+     * @param string  $key
+     *
+     * @return array
+     */
+    private function extractArrayParamFromRequest(Request $request, string $key): array
     {
+        $content = [];
+        if (null !== $items = $request->get($key)) {
+            $content = array_map(
+                fn($roadId): int => (integer)$roadId,
+                array_filter(
+                    explode(',', $items),
+                    fn($item): bool => '' !== $item
+                )
+            );
+        }
+
+        return $content;
+    }
+
+    #[Route('/{userId}/details/{stationId}', name: 'details')]
+    public function details(
+        int $userId,
+        int $stationId
+    ): Response {
         return $this->json([]);
     }
 }
